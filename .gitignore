@@ -1,0 +1,27 @@
+# Binaries and object files
+bin/*
+!bin/.gitkeep
+build/
+*.o
+*.obj
+*.exe
+*.out
+*.app
+*.a
+*.so
+*.dylib
+*.dll
+
+# Debug symbols
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db

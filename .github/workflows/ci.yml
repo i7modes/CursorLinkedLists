@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: "Ubuntu (GCC) + Valgrind"
+            os: ubuntu-latest
+            cc: gcc
+            valgrind: true
+
+          - name: "Ubuntu (Clang + AddressSanitizer)"
+            os: ubuntu-latest
+            cc: clang
+            asan: true
+
+          - name: "Windows (MinGW GCC)"
+            os: windows-latest
+            cc: gcc
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Ensure bin directory exists
+        run: mkdir -p bin
+
+      - name: Install dependencies (Ubuntu)
+        if: runner.os == 'Linux' && matrix.valgrind
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y valgrind
+
+      - name: Build and Run Tests (Default)
+        if: "!matrix.asan"
+        run: |
+          make test
+          ./bin/test_runner${{ runner.os == 'Windows' && '.exe' || '' }}
+
+      - name: Run Memory Leak Check (Valgrind)
+        if: matrix.valgrind
+        run: |
+          valgrind --leak-check=full --show-leak-kinds=all --error-exitcode=1 ./bin/test_runner
+
+      - name: Build and Run with AddressSanitizer
+        if: matrix.asan
+        run: |
+          clang -Wall -Wextra -Wpedantic -std=c99 -fsanitize=address,undefined -g -Iinclude src/cursor_list.c tests/test_cursor_list.c -o bin/test_runner_asan
+          ./bin/test_runner_asan
+
+      - name: Build Demo Application
+        run: |
+          make demo
+          ./bin/demo${{ runner.os == 'Windows' && '.exe' || '' }}
